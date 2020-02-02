@@ -310,8 +310,8 @@ def prep_display(dets_out, img,  h, w, undo_transform=True, class_color=False, m
                     center =  (point[0],point[1])
                     print("points p1="+str(point[0])+" p2="+str(point[1])+"  x1="+str(x1)+" x2="+str(x2)+" y1="+str(y1)+" y2="+str(y2))
                     if (int(point[0]) >= x1) and (int(point[0]) <= x2) and (int(point[1]) >= int(y1)) and (int(point[1]) <= int(y2)):
-                        cv2.circle(img_numpy, center, 3, common.CocoColors[i], thickness=3, lineType=8, shift=0)
-                        humanSkeletons[count].partinfo.append( (point[2],center))
+                        cv2.circle(img_numpy, center, 3, common.CocoColors[j], thickness=3, lineType=8, shift=0)
+                        #humanSkeletons[count].partinfo.append( (point[2],center))
                 count = count+1        
 
             if args.display_text:
@@ -668,8 +668,8 @@ def evalimage(net:Yolact, path:str, save_path:str=None):
     batch = FastBaseTransform()(frame.unsqueeze(0))
     preds = net(batch)
     img_numpy = prep_display(preds, frame, None, None, undo_transform=False)
-    cv2.imshow('test',img_numpy)
-    cv2.waitKey(0)
+    cv2.imwrite('output.png',img_numpy)
+    
 #    plt.title(path)
 #    plt.show()
         
