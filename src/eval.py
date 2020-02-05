@@ -50,13 +50,17 @@ logger.addHandler(ch)
 humans = []
 points =[]
 
+#def draw_skeleton(image, humanpoints):
+ # cv2.line(image, (humanpoints[0][0], humanpoint[0][1]), (humanpoints[1][0], humanpoint[1][1]) , color, 1) 
+
+
 def get_heatMapPoints(humans,width_ori, height_ori):
     for human in humans:
 #        print (hu0man.body_parts[1].x)
         for i in human.body_parts:
             part = human.body_parts[i]
             x = int( part.x * width_ori)
-            y = int(part.y * height_ori )
+            y = int( part.y * height_ori )
             center = (x , y , part.get_part_name())
 #            print('width = '+ str(width_ori) + ' height = '+ str(height_ori) + 'x0 ='+ str(x0) + 'y0 ='+ str(y0) + 'x1 = '+ str(x1) + 'y1 = '+str(y1) + 'x = '+str(x) + ', y ='+  str(y) +' body part='+ str(part.get_part_name()))
             points.append (center)
@@ -130,7 +134,7 @@ def parse_args(argv=None):
                         help='Do not crop output masks with the predicted bounding box.')
     parser.add_argument('--image', default='team3.jpg:output_image.jpg', type=str,
                         help='A path to an image to use for display.')
-    parser.add_argument('--input_image', type=str, default='team2.jpg')
+    parser.add_argument('--input_image', type=str, default='team3.jpg')
     parser.add_argument('--images', default=None, type=str,
                         help='An input folder of images and output folder to save detected images. Should be in the format input->output.')
     parser.add_argument('--video', default=None, type=str,
@@ -159,18 +163,21 @@ def parse_args(argv=None):
     args = parser.parse_args(argv)
     scales = ast.literal_eval(args.scales)
 
-    w, h = model_wh(args.resolution)
-    e = TfPoseEstimator(get_graph_path(args.model), target_size=(w, h))
-
-    # estimate human poses from a single image !
     image = common.read_imgfile(args.input_image, None, None)
-    # image = cv2.fastNlMeansDenoisingColored(image, None, 10, 10, 7, 21)
-    t = time.time()
-    humans = e.inference(image, scales=scales)
-    tf.reset_default_graph()
-    
     img_ori = cv2.imread(args.input_image)
     height_ori, width_ori = img_ori.shape[:2]
+
+    #w, h = model_wh(args.resolution)
+    e = TfPoseEstimator(get_graph_path(args.model), target_size=(width_ori, height_ori))
+
+    # estimate human poses from a single image !
+    
+    # image = cv2.fastNlMeansDenoisingColored(image, None, 10, 10, 7, 21)
+    t = time.time()
+    humans = e.inference(img_ori)
+    tf.reset_default_graph()
+    
+    
     points = get_heatMapPoints(humans, width_ori, height_ori)
     print('length'+ str(len(humans)))
     print(points)
@@ -297,11 +304,11 @@ def prep_display(dets_out, img,  h, w, undo_transform=True, class_color=False, m
 
     if args.display_text or args.display_bboxes:
         count = 0
+        humanpoints = []
         for j in reversed(range(num_dets_to_consider)):
             x1, y1, x2, y2 = boxes[j, :]
             color = get_color(j)
             score = scores[j]
-
             if args.display_bboxes:
                 print("inside display boxes")
                 cv2.rectangle(img_numpy, (x1, y1), (x2, y2), color, 1)
@@ -310,8 +317,10 @@ def prep_display(dets_out, img,  h, w, undo_transform=True, class_color=False, m
                     center =  (point[0],point[1])
                     print("points p1="+str(point[0])+" p2="+str(point[1])+"  x1="+str(x1)+" x2="+str(x2)+" y1="+str(y1)+" y2="+str(y2))
                     if (int(point[0]) >= x1) and (int(point[0]) <= x2) and (int(point[1]) >= int(y1)) and (int(point[1]) <= int(y2)):
-                        cv2.circle(img_numpy, center, 3, common.CocoColors[j], thickness=3, lineType=8, shift=0)
-                        #humanSkeletons[count].partinfo.append( (point[2],center))
+                      cv2.circle(img_numpy, center, 3, common.CocoColors[j], thickness=3, lineType=8, shift=0)
+                      humanpoints.append(point)
+                #draw_skeleton(img_numpy,humanpoints)
+                humanpoints = []
                 count = count+1        
 
             if args.display_text:
