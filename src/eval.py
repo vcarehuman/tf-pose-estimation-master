@@ -152,7 +152,7 @@ def parse_args(argv=None):
     parser.add_argument('--emulate_playback', default=False, dest='emulate_playback', action='store_true',
                         help='When saving a video, emulate the framerate that you\'d get running in real-time mode.')
     parser.add_argument('--resolution', type=str, default='432x368', help='network input resolution. default=432x368')
-    parser.add_argument('--model', type=str, default='mobilenet_thin', help='cmu / mobilenet_thin')
+    parser.add_argument('--model', type=str, default='cmu', help='cmu / mobilenet_thin')
     parser.add_argument('--scales', type=str, default='[None]', help='for multiple scales, eg. [1.0, (1.1, 0.05)]')
 
     parser.set_defaults(no_bar=False, display=False, resume=False, output_coco_json=False, output_web_json=False, shuffle=False,
@@ -168,7 +168,7 @@ def parse_args(argv=None):
     height_ori, width_ori = img_ori.shape[:2]
 
     #w, h = model_wh(args.resolution)
-    e = TfPoseEstimator(get_graph_path(args.model), target_size=(width_ori, height_ori))
+    e = TfPoseEstimator('graph_opt.pb', target_size=(width_ori, height_ori))
 
     # estimate human poses from a single image !
     
