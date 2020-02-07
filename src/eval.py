@@ -163,24 +163,15 @@ def parse_args(argv=None):
     args = parser.parse_args(argv)
     scales = ast.literal_eval(args.scales)
 
-    image = common.read_imgfile(args.input_image, None, None)
-    img_ori = cv2.imread(args.input_image)
-    height_ori, width_ori = img_ori.shape[:2]
+    
 
     #w, h = model_wh(args.resolution)
-    e = TfPoseEstimator('graph_opt.pb', target_size=(width_ori, height_ori))
+    
 
     # estimate human poses from a single image !
     
     # image = cv2.fastNlMeansDenoisingColored(image, None, 10, 10, 7, 21)
     t = time.time()
-    humans = e.inference(img_ori)
-    tf.reset_default_graph()
-    
-    
-    points = get_heatMapPoints(humans, width_ori, height_ori)
-    print('length'+ str(len(humans)))
-    print(points)
     elapsed = time.time() - t
     logger.info('inference image: %s in %.4f seconds.' % (args.image, elapsed))
 
@@ -198,7 +189,7 @@ color_cache = defaultdict(lambda: {})
 
 
 def prep_display(dets_out, img,  h, w, undo_transform=True, class_color=False, mask_alpha=0.45, fps_str=''):
-    print("inside prep display")
+    
     
     """
     Note: If undo_transform=False then im_h and im_w are allowed to be None.
@@ -304,23 +295,29 @@ def prep_display(dets_out, img,  h, w, undo_transform=True, class_color=False, m
 
     if args.display_text or args.display_bboxes:
         count = 0
-        humanpoints = []
+        
+        image = common.read_imgfile(args.input_image, None, None)
+        img_ori = cv2.imread(args.input_image)
+        height_ori, width_ori = img_ori.shape[:2]
+        e = TfPoseEstimator(get_graph_path(args.model), target_size=(width_ori, height_ori))
+        humans = e.inference(img_ori)
+        points = get_heatMapPoints(humans, width_ori, height_ori)
         for j in reversed(range(num_dets_to_consider)):
+            humanpoints = []
             x1, y1, x2, y2 = boxes[j, :]
             color = get_color(j)
             score = scores[j]
             if args.display_bboxes:
-                print("inside display boxes")
                 cv2.rectangle(img_numpy, (x1, y1), (x2, y2), color, 1)
-                print(points)
                 for point in points:
                     center =  (point[0],point[1])
-                    print("points p1="+str(point[0])+" p2="+str(point[1])+"  x1="+str(x1)+" x2="+str(x2)+" y1="+str(y1)+" y2="+str(y2))
+                    #print("points p1="+str(point[0])+" p2="+str(point[1])+"  x1="+str(x1)+" x2="+str(x2)+" y1="+str(y1)+" y2="+str(y2))
                     if (int(point[0]) >= x1) and (int(point[0]) <= x2) and (int(point[1]) >= int(y1)) and (int(point[1]) <= int(y2)):
                       cv2.circle(img_numpy, center, 3, common.CocoColors[j], thickness=3, lineType=8, shift=0)
                       humanpoints.append(point)
-                #draw_skeleton(img_numpy,humanpoints)
-                humanpoints = []
+                      print(humanpoints)
+                TfPoseEstimator.draw_humans(img_numpy, humanpoints, imgcopy=False)
+                humanpoints.clear()
                 count = count+1        
 
             if args.display_text:
