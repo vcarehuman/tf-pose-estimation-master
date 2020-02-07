@@ -39,6 +39,7 @@ import tensorflow as tf
 from networks import get_graph_path, model_wh
 from lifting.prob_model import Prob3dPose
 from lifting.draw import plot_pose
+from common import CocoPairsNetwork, CocoPairs, CocoPart
 
 logger = logging.getLogger('TfPoseEstimator')
 logger.setLevel(logging.DEBUG)
@@ -47,24 +48,46 @@ ch.setLevel(logging.DEBUG)
 formatter = logging.Formatter('[%(asctime)s] [%(name)s] [%(levelname)s] %(message)s')
 ch.setFormatter(formatter)
 logger.addHandler(ch)
-humans = []
-points =[]
 
 #def draw_skeleton(image, humanpoints):
  # cv2.line(image, (humanpoints[0][0], humanpoint[0][1]), (humanpoints[1][0], humanpoint[1][1]) , color, 1) 
 
+def draw_skeleton(image ,humanpoints,width_ori, height_ori):
+    for (part_idx1, part_idx2) in CocoPairs:
+      point1 = ""
+      point2 = ""
+      for humanpoint in humanpoints:
+        #  print('humanpoint.part_idx='+str(humanpoint.part_idx) )
+        #  print('part_idx1'+str(part_idx1) )
+        #  print('part_idx2'+str(part_idx2) )
+          if humanpoint.part_idx == part_idx1:
+             print('inside point1 found')             
+             point1 = (humanpoint.x * width_ori ,humanpoint.y * height_ori)
+      for humanpoint in humanpoints:
+          if humanpoint.part_idx == part_idx2:
+             print('inside point2 found')             
+             point2 = (humanpoint.x * width_ori ,humanpoint.y * height_ori)
+      
+      #print('point1 = '+ point1)
+      #print('point2 = '+ point1)
+      if point1 != "" and point2 != "":
+             print("inside found")
+             cv2.line(image, point1 , point2 , (0, 255, 0), 3)   
 
-def get_heatMapPoints(humans,width_ori, height_ori):
+                    
+    #for pair in POSE_PAIRS:
+     #   partA = pair[0]
+      #  partB = pair[1]
+    #
+     #   if points[partA] and points[partB]:
+      #      cv2.line(frameCopy, points[partA], points[partB], (0, 255, 0), 3)
+
+def get_heatMapPoints(humans):
+    parts = []
     for human in humans:
-#        print (hu0man.body_parts[1].x)
         for i in human.body_parts:
-            part = human.body_parts[i]
-            x = int( part.x * width_ori)
-            y = int( part.y * height_ori )
-            center = (x , y , part.get_part_name())
-#            print('width = '+ str(width_ori) + ' height = '+ str(height_ori) + 'x0 ='+ str(x0) + 'y0 ='+ str(y0) + 'x1 = '+ str(x1) + 'y1 = '+str(y1) + 'x = '+str(x) + ', y ='+  str(y) +' body part='+ str(part.get_part_name()))
-            points.append (center)
-    return points
+            parts.append (human.body_parts[i])
+    return parts
 
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
@@ -296,29 +319,25 @@ def prep_display(dets_out, img,  h, w, undo_transform=True, class_color=False, m
     if args.display_text or args.display_bboxes:
         count = 0
         
-        image = common.read_imgfile(args.input_image, None, None)
+        #image = common.read_imgfile(args.input_image, None, None)
         img_ori = cv2.imread(args.input_image)
         height_ori, width_ori = img_ori.shape[:2]
         e = TfPoseEstimator(get_graph_path(args.model), target_size=(width_ori, height_ori))
         humans = e.inference(img_ori)
-        points = get_heatMapPoints(humans, width_ori, height_ori)
+        body_parts = get_heatMapPoints(humans)
         for j in reversed(range(num_dets_to_consider)):
-            humanpoints = []
             x1, y1, x2, y2 = boxes[j, :]
             color = get_color(j)
             score = scores[j]
             if args.display_bboxes:
                 cv2.rectangle(img_numpy, (x1, y1), (x2, y2), color, 1)
-                for point in points:
-                    center =  (point[0],point[1])
-                    #print("points p1="+str(point[0])+" p2="+str(point[1])+"  x1="+str(x1)+" x2="+str(x2)+" y1="+str(y1)+" y2="+str(y2))
-                    if (int(point[0]) >= x1) and (int(point[0]) <= x2) and (int(point[1]) >= int(y1)) and (int(point[1]) <= int(y2)):
-                      cv2.circle(img_numpy, center, 3, common.CocoColors[j], thickness=3, lineType=8, shift=0)
-                      humanpoints.append(point)
-                      print(humanpoints)
-                TfPoseEstimator.draw_humans(img_numpy, humanpoints, imgcopy=False)
-                humanpoints.clear()
-                count = count+1        
+                for body_part in body_parts:
+                    humanpoints = []
+                    center =  (body_part.x * width_ori, body_part.y * height_ori)
+                    if (int(center[0]) >= x1) and (int(center[0]) <= x2) and (int(center[1]) >= int(y1)) and (int(center[1]) <= int(y2)):
+                       humanpoints.append(body_part)
+                    
+                    draw_skeleton(img_numpy ,humanpoints, width_ori, height_ori)        
 
             if args.display_text:
                 _class = cfg.dataset.class_names[classes[j]]
