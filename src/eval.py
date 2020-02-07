@@ -54,33 +54,18 @@ logger.addHandler(ch)
 
 def draw_skeleton(image ,humanpoints,width_ori, height_ori):
     for (part_idx1, part_idx2) in CocoPairs:
-      point1 = ""
-      point2 = ""
-      for humanpoint in humanpoints:
-        #  print('humanpoint.part_idx='+str(humanpoint.part_idx) )
-        #  print('part_idx1'+str(part_idx1) )
-        #  print('part_idx2'+str(part_idx2) )
-          if humanpoint.part_idx == part_idx1:
-             print('inside point1 found')             
-             point1 = (humanpoint.x * width_ori ,humanpoint.y * height_ori)
-      for humanpoint in humanpoints:
-          if humanpoint.part_idx == part_idx2:
-             print('inside point2 found')             
-             point2 = (humanpoint.x * width_ori ,humanpoint.y * height_ori)
+      point1 = GetPoint(humanpoints, part_idx1,width_ori, height_ori)
+      print('point1 = '+ str(point1))
+      point2 = GetPoint(humanpoints, part_idx2,width_ori, height_ori)
+      print('point2 = '+ str(point2))
+      if str(point1) != "None" and str(point2) != "None":
+        cv2.line(image, (int(point1[0]),int(point1[1])) , (int(point2[0]),int(point2[1])) , (0, 255, 0), 3)   
       
-      #print('point1 = '+ point1)
-      #print('point2 = '+ point1)
-      if point1 != "" and point2 != "":
-             print("inside found")
-             cv2.line(image, point1 , point2 , (0, 255, 0), 3)   
-
-                    
-    #for pair in POSE_PAIRS:
-     #   partA = pair[0]
-      #  partB = pair[1]
-    #
-     #   if points[partA] and points[partB]:
-      #      cv2.line(frameCopy, points[partA], points[partB], (0, 255, 0), 3)
+def GetPoint (humanpoints, part_idx,width_ori , height_ori):
+  for humanpoint in humanpoints:
+          if humanpoint.part_idx == part_idx:
+             point = (humanpoint.x * width_ori , humanpoint.y * height_ori)
+             return point
 
 def get_heatMapPoints(humans):
     parts = []
