@@ -324,126 +324,34 @@ class TfPoseEstimator:
     
     
     @staticmethod
-    def draw_humans(npimg, humans, imgcopy=False):
-           
-        if imgcopy:
+    def draw_humans(npimg, points, imgcopy=False):
+       #print('inside draw human')
+       #print('human count' + str(len(points)))
+       if imgcopy:
             npimg = np.copy(npimg)
-        image_h, image_w = npimg.shape[:2]
-        centers = {}
-        TfPoseEstimator.num +=1
-        TfPoseEstimator.row = TfPoseEstimator.sheet1.row(TfPoseEstimator.num)
-        
-                
-        for human in humans:
-            a=0
-            b=0
-            c=0
-            
-            
-            
-            
-            
-            
-            # draw point
-            for i in range(common.CocoPart.Background.value):
-                
-                
-                
-                if i not in human.body_parts.keys():
-                    continue
-                body_part = human.body_parts[i]
-                
-                if (str(body_part.get_part_name()).strip() not in ("CocoPart.RShoulder", "CocoPart.RElbow","CocoPart.RWrist")):
-                    continue
-                
-                
-                center = (int(body_part.x * image_w + 0.5), int(body_part.y * image_h + 0.5))
-                centers[i] = center
-                cv2.circle(npimg, center, 3, common.CocoColors[i], thickness=3, lineType=8, shift=0)
-                
-#                cv2.putText(npimg, center, center, 4, 2, 255, 3, 8)
-               
-                
-                if (str(body_part.get_part_name()).strip()=="CocoPart.RShoulder"):
-                    a = np.array([int(body_part.x * image_w + 0.5), int(body_part.y * image_h + 0.5)])
-                
-                if (str(body_part.get_part_name()).strip()=="CocoPart.RElbow"):
-                    b = np.array([int(body_part.x * image_w + 0.5), int(body_part.y * image_h + 0.5)])
-                    
-                if (str(body_part.get_part_name()).strip()=="CocoPart.RWrist"):
-                    c = np.array([int(body_part.x * image_w + 0.5), int(body_part.y * image_h + 0.5)])
+       centers = {}
+       for point in points:
+          #print('inside for loop')
+          # draw point
+          for i in range(common.CocoPart.Background.value):
+              #print('inside nested for loop')
+              body_part = point[2]
+              #print(body_part)
+              #print(str(point[0]))
+              #print(str(point[1]))
+              center = (int(point[0] ), int(point[1] ))
+              centers[i] = center
+              cv2.circle(npimg, center, 3, common.CocoColors[i], thickness=3, lineType=8, shift=0)
+              #print('nested for ends')
 
-                cv2.putText(npimg,
-                    str(center) ,
-                    (int(body_part.x * image_w + 0.5) , int(body_part.y * image_h + 0.5)),  cv2.FONT_HERSHEY_SIMPLEX, 0.5,
-                    (0, 255, 0), 2)
-                               
-                print(center)
-                
-                try:
-                    TfPoseEstimator.row.write(0, datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-4])
-                    
-                except:
-                    print("time not printed")     
-                
-                try:
-                    if (str(body_part.get_part_name()).strip()=="CocoPart.RShoulder"):
-                           TfPoseEstimator.row.write(1, int(body_part.x * image_w + 0.5))
-                           TfPoseEstimator.row.write(2, int(body_part.y * image_h + 0.5))
-                        
-                    if (str(body_part.get_part_name()).strip()=="CocoPart.RElbow"):
-                            TfPoseEstimator.row.write(3, int(body_part.x * image_w + 0.5))
-                            TfPoseEstimator.row.write(4, int(body_part.y * image_h + 0.5))
-                            
-                    if (str(body_part.get_part_name()).strip()=="CocoPart.RWrist"):
-                            TfPoseEstimator.row.write(5, int(body_part.x * image_w + 0.5))
-                            TfPoseEstimator.row.write(6, int(body_part.y * image_h + 0.5))
-                except:
-                    print("time not printed")   
-                    
-        
-                print("keys = " + str(human.body_parts.keys()))
-                
-                
-            # draw line
-            for pair_order, pair in enumerate(common.CocoPairsRender):
-                if pair[0] not in human.body_parts.keys() or pair[1] not in human.body_parts.keys():
-                    continue
-                ba = a - b
-                bc = c - b
+          # draw line
+          for pair_order, pair in enumerate(common.CocoPairsRender):
+              #print('inside draw line loop')
+              print('drawing line')
+              cv2.line(npimg, centers[pair[0]], centers[pair[1]], common.CocoColors[pair_order], 3)
 
-                cosine_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
-                angle = np.arccos(cosine_angle)
-
-                degree = np.degrees(angle)
-                
-                try:
-                    TfPoseEstimator.row.write(7, str(round(degree)))  
-                except:
-                    
-                    TfPoseEstimator.book.save("test.xls")       
-                  
-                
-                    print("  " + str(degree))
-                    
-                       
-                
-                
-                
-                
-                cv2.putText(npimg,
-                    "   " + str(degree),
-                    (10 , 35),  cv2.FONT_HERSHEY_SIMPLEX, 1,
-                    (255, 0, 0), 2)
-                
-                
-                if (str(body_part.get_part_name()).strip() not in ("CocoPart.RHip","CocoPart.RShoulder","CocoPart.RElbow")):
-                    continue
-                  
-                #npimg = cv2.line(npimg, centers[pair[0]], centers[pair[1]], common.CocoColors[pair_order], 3)
-                        
-                             
-        return npimg
+       return npimg
+     
     
       
 
