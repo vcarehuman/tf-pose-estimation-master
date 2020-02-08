@@ -55,13 +55,13 @@ logger.addHandler(ch)
 def draw_skeleton(image ,humanpoints,width_ori, height_ori):
     point1 =''
     point2 =''
-    for (part_idx1, part_idx2) in CocoPairs:
-      point1 = GetPoint(humanpoints, part_idx1,width_ori, height_ori)
-      print('point1 = '+ str(point1))
-      point2 = GetPoint(humanpoints, part_idx2,width_ori, height_ori)
+    #for (part_idx1, part_idx2) in CocoPairs:
+      #point1 = GetPoint(humanpoints, part_idx1,width_ori, height_ori)
+      #print('point1 = '+ str(point1))
+      #point2 = GetPoint(humanpoints, part_idx2,width_ori, height_ori)
       #print('point2 = '+ str(point2))
-      if str(point1) != "None" and str(point2) != "None":
-        cv2.line(image, (int(point1[0]),int(point1[1])) , (int(point2[0]),int(point2[1])) , (0, 255, 0), 3)   
+      #if str(point1) != "None" and str(point2) != "None":
+       # cv2.line(image, (int(point1[0]),int(point1[1])) , (int(point2[0]),int(point2[1])) , (0, 255, 0), 3)   
       
 def GetPoint(humanpoints, part_idx,width_ori , height_ori):
   point = ''
@@ -324,11 +324,10 @@ def prep_display(dets_out, img,  h, w, undo_transform=True, class_color=False, m
             if args.display_bboxes:
                 cv2.rectangle(img_numpy, (x1, y1), (x2, y2), color, 1)
                 for body_part in body_parts:
-                    humanpoints = []
                     center =  (body_part.x * width_ori, body_part.y * height_ori)
                     if (int(center[0]) >= x1) and (int(center[0]) <= x2) and (int(center[1]) >= int(y1)) and (int(center[1]) <= int(y2)):
                        humanpoints.append(body_part)
-                    
+                    print(humanpoints)
                     draw_skeleton(img_numpy ,humanpoints, width_ori, height_ori)        
 
             if args.display_text:
