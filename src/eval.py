@@ -53,19 +53,26 @@ logger.addHandler(ch)
  # cv2.line(image, (humanpoints[0][0], humanpoint[0][1]), (humanpoints[1][0], humanpoint[1][1]) , color, 1) 
 
 def draw_skeleton(image ,humanpoints,width_ori, height_ori):
+    point1 =''
+    point2 =''
     for (part_idx1, part_idx2) in CocoPairs:
       point1 = GetPoint(humanpoints, part_idx1,width_ori, height_ori)
       print('point1 = '+ str(point1))
       point2 = GetPoint(humanpoints, part_idx2,width_ori, height_ori)
-      print('point2 = '+ str(point2))
+      #print('point2 = '+ str(point2))
       if str(point1) != "None" and str(point2) != "None":
         cv2.line(image, (int(point1[0]),int(point1[1])) , (int(point2[0]),int(point2[1])) , (0, 255, 0), 3)   
       
-def GetPoint (humanpoints, part_idx,width_ori , height_ori):
+def GetPoint(humanpoints, part_idx,width_ori , height_ori):
+  point = ''
   for humanpoint in humanpoints:
-          if humanpoint.part_idx == part_idx:
-             point = (humanpoint.x * width_ori , humanpoint.y * height_ori)
-             return point
+      #print('humanpoint.part_idx= ' + str(humanpoint.part_idx) +' part_idx= ' + str(part_idx) )
+      if str(humanpoint.part_idx) == str(part_idx):
+         print('humanpoint.part_idx= ' + str(humanpoint.part_idx) +' part_idx= ' + str(part_idx) )
+         point = (int(humanpoint.x * width_ori) , int(humanpoint.y * height_ori))
+         return point
+         break
+      return point
 
 def get_heatMapPoints(humans):
     parts = []
