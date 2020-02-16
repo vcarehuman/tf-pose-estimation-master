@@ -26,6 +26,8 @@ from collections import defaultdict
 from pathlib import Path
 from collections import OrderedDict
 from PIL import Image
+from shapely.geometry import Point
+from shapely.geometry.polygon import Polygon
 
 import matplotlib.pyplot as plt
 import cv2
@@ -71,10 +73,16 @@ def printMaskPolyon(segmentation:np.ndarray):
 
         for contour in contours:
             contour = np.flip(contour, axis=1)
+            polygon = Polygon(contour)
+            print('counter' + str(contour))
+            point1 = Point(1000, 1000)
+            point2 = Point(300, 300)
+            print('1000,1000 CONTAINS = ' + str(point1.within(polygon)))
+            print('300,300 CONTAINS = ' + str(point2.within(polygon)))
             segmentation = contour.ravel().tolist()
             annotation["segmentation"].append(segmentation)
             
-        print(json.dumps(annotation, indent=4))
+        #print(json.dumps(annotation, indent=4))
 
 def draw_skeleton(image ,humanpoints,width_ori, height_ori):
     point1 =''
