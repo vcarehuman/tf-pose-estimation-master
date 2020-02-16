@@ -25,6 +25,7 @@ from collections import defaultdict
 from pathlib import Path
 from collections import OrderedDict
 from PIL import Image
+from skimage import measure
 
 import matplotlib.pyplot as plt
 import cv2
@@ -62,8 +63,8 @@ def draw_skeleton(image ,humanpoints,width_ori, height_ori):
         #print('point2 = '+ str(point2))
         if point1 != None and point2 != None:
            print('point1 = '+ str(point1))
-           print('point2 = '+ str(point2))
-           cv2.line(image, (int(point1[0]),int(point1[1])) , (int(point2[0]),int(point2[1])) , (0, 255, 0), 3)   
+           #print('point2 = '+ str(point2))
+           #cv2.line(image, (int(point1[0]),int(point1[1])) , (int(point2[0]),int(point2[1])) , (0, 255, 0), 3)   
   
 
 def GetPoint(humanpoints, part_idx,width_ori , height_ori):
@@ -146,9 +147,9 @@ def parse_args(argv=None):
                         help='Outputs stuff for scripts/compute_mask.py.')
     parser.add_argument('--no_crop', default=False, dest='crop', action='store_false',
                         help='Do not crop output masks with the predicted bounding box.')
-    parser.add_argument('--image', default='team3.jpg:output_image.jpg', type=str,
+    parser.add_argument('--image', default=None, type=str,
                         help='A path to an image to use for display.')
-    parser.add_argument('--input_image', type=str, default='team3.jpg')
+    parser.add_argument('--input_image', type=str, default='000000301867.jpg')
     parser.add_argument('--images', default=None, type=str,
                         help='An input folder of images and output folder to save detected images. Should be in the format input->output.')
     parser.add_argument('--video', default=None, type=str,
@@ -408,6 +409,30 @@ class Detections:
 
     def add_mask(self, image_id:int, category_id:int, segmentation:np.ndarray, score:float):
         """ The segmentation should be the full mask, the size of the image and with size [h, w]. """
+        ground_truth_binary_mask = segmentation.astype(np.uint8)
+        fortran_ground_truth_binary_mask = np.asfortranarray(ground_truth_binary_mask)
+        encoded_ground_truth = pycocotools.mask.encode(fortran_ground_truth_binary_mask)
+        ground_truth_area = pycocotools.mask.area(encoded_ground_truth)
+        ground_truth_bounding_box = pycocotools.mask.toBbox(encoded_ground_truth)
+        contours = measure.find_contours(ground_truth_binary_mask, 0.5)
+
+        annotation = {
+                "segmentation": [],
+                "area": ground_truth_area.tolist(),
+                "iscrowd": 0,
+                "image_id": 123,
+                "bbox": ground_truth_bounding_box.tolist(),
+                "category_id": 1,
+                "id": 1
+            }
+
+        for contour in contours:
+            contour = np.flip(contour, axis=1)
+            segmentation = contour.ravel().tolist()
+            annotation["segmentation"].append(segmentation)
+            
+        print(json.dumps(annotation, indent=4))
+        
         rle = pycocotools.mask.encode(np.asfortranarray(segmentation.astype(np.uint8)))
         rle['counts'] = rle['counts'].decode('ascii') # json.dump doesn't like bytes strings
 
