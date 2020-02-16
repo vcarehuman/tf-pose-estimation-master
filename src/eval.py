@@ -7,6 +7,7 @@ from utils import timer
 from utils.functions import SavePath
 from layers.output_utils import postprocess, undo_image_transformation
 import pycocotools
+from skimage import measure
 
 from data import cfg, set_cfg, set_dataset
 
@@ -25,7 +26,6 @@ from collections import defaultdict
 from pathlib import Path
 from collections import OrderedDict
 from PIL import Image
-from skimage import measure
 
 import matplotlib.pyplot as plt
 import cv2
@@ -52,6 +52,29 @@ logger.addHandler(ch)
 
 #def draw_skeleton(image, humanpoints):
  # cv2.line(image, (humanpoints[0][0], humanpoint[0][1]), (humanpoints[1][0], humanpoint[1][1]) , color, 1) 
+def printMaskPolyon(segmentation:np.ndarray):
+        ground_truth_binary_mask = segmentation.astype(np.uint8)
+        fortran_ground_truth_binary_mask = np.asfortranarray(ground_truth_binary_mask)
+        encoded_ground_truth = pycocotools.mask.encode(fortran_ground_truth_binary_mask)
+        ground_truth_area = pycocotools.mask.area(encoded_ground_truth)
+        ground_truth_bounding_box = pycocotools.mask.toBbox(encoded_ground_truth)
+        contours = measure.find_contours(ground_truth_binary_mask, 0.5)
+        annotation = {
+                "segmentation": [],
+                "area": ground_truth_area.tolist(),
+                "iscrowd": 0,
+                "image_id": 123,
+                "bbox": ground_truth_bounding_box.tolist(),
+                "category_id": 1,
+                "id": 1
+            }
+
+        for contour in contours:
+            contour = np.flip(contour, axis=1)
+            segmentation = contour.ravel().tolist()
+            annotation["segmentation"].append(segmentation)
+            
+        print(json.dumps(annotation, indent=4))
 
 def draw_skeleton(image ,humanpoints,width_ori, height_ori):
     point1 =''
@@ -407,31 +430,11 @@ class Detections:
             'score': float(score)
         })
 
+
     def add_mask(self, image_id:int, category_id:int, segmentation:np.ndarray, score:float):
+        #printing mask
+        printMaskPolyon(segmentation)
         """ The segmentation should be the full mask, the size of the image and with size [h, w]. """
-        ground_truth_binary_mask = segmentation.astype(np.uint8)
-        fortran_ground_truth_binary_mask = np.asfortranarray(ground_truth_binary_mask)
-        encoded_ground_truth = pycocotools.mask.encode(fortran_ground_truth_binary_mask)
-        ground_truth_area = pycocotools.mask.area(encoded_ground_truth)
-        ground_truth_bounding_box = pycocotools.mask.toBbox(encoded_ground_truth)
-        contours = measure.find_contours(ground_truth_binary_mask, 0.5)
-
-        annotation = {
-                "segmentation": [],
-                "area": ground_truth_area.tolist(),
-                "iscrowd": 0,
-                "image_id": 123,
-                "bbox": ground_truth_bounding_box.tolist(),
-                "category_id": 1,
-                "id": 1
-            }
-
-        for contour in contours:
-            contour = np.flip(contour, axis=1)
-            segmentation = contour.ravel().tolist()
-            annotation["segmentation"].append(segmentation)
-            
-        print(json.dumps(annotation, indent=4))
         
         rle = pycocotools.mask.encode(np.asfortranarray(segmentation.astype(np.uint8)))
         rle['counts'] = rle['counts'].decode('ascii') # json.dump doesn't like bytes strings
