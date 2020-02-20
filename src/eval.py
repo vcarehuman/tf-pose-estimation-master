@@ -54,13 +54,14 @@ logger.addHandler(ch)
 
 #def draw_skeleton(image, humanpoints):
  # cv2.line(image, (humanpoints[0][0], humanpoint[0][1]), (humanpoints[1][0], humanpoint[1][1]) , color, 1) 
-def printMaskPolyon(segmentation:np.ndarray):
+def printMaskPolyon(segmentation:np.ndarray,image ,humanpoints, width_ori, height_ori):
         ground_truth_binary_mask = segmentation.astype(np.uint8)
         fortran_ground_truth_binary_mask = np.asfortranarray(ground_truth_binary_mask)
         encoded_ground_truth = pycocotools.mask.encode(fortran_ground_truth_binary_mask)
         ground_truth_area = pycocotools.mask.area(encoded_ground_truth)
         ground_truth_bounding_box = pycocotools.mask.toBbox(encoded_ground_truth)
         contours = measure.find_contours(ground_truth_binary_mask, 0.5)
+        print('contours count' + str(len(contours)))
         annotation = {
                 "segmentation": [],
                 "area": ground_truth_area.tolist(),
@@ -74,13 +75,23 @@ def printMaskPolyon(segmentation:np.ndarray):
         for contour in contours:
             contour = np.flip(contour, axis=1)
             polygon = Polygon(contour)
-            print('counter' + str(contour))
-            point1 = Point(1000, 1000)
-            point2 = Point(300, 300)
-            print('1000,1000 CONTAINS = ' + str(point1.within(polygon)))
-            print('300,300 CONTAINS = ' + str(point2.within(polygon)))
-            segmentation = contour.ravel().tolist()
-            annotation["segmentation"].append(segmentation)
+
+            point1 =''
+            point2 =''
+            for (part_idx1, part_idx2) in CocoPairs:
+                
+                point1 = GetPoint(humanpoints, part_idx1,width_ori, height_ori)
+                #print('point1 = '+ str(point1))
+                point2 = GetPoint(humanpoints, part_idx2,width_ori, height_ori)
+                #print('point2 = '+ str(point2))
+                if point1 != None and point2 != None and polygon.contains(Point(point1)) and polygon.contains(Point(point2)):
+                  print('found')
+                  #print('point2 = '+ str(point2))
+                  cv2.line(image, (int(point1[0]),int(point1[1])) , (int(point2[0]),int(point2[1])) , (0, 255, 0), 3)   
+
+            #print('counter' + str(contour))
+            #segmentation = contour.ravel().tolist()
+            #annotation["segmentation"].append(segmentation)
             
         #print(json.dumps(annotation, indent=4))
 
@@ -93,9 +104,9 @@ def draw_skeleton(image ,humanpoints,width_ori, height_ori):
         point2 = GetPoint(humanpoints, part_idx2,width_ori, height_ori)
         #print('point2 = '+ str(point2))
         if point1 != None and point2 != None:
-           print('point1 = '+ str(point1))
+           #print('point1 = '+ str(point1))
            #print('point2 = '+ str(point2))
-           #cv2.line(image, (int(point1[0]),int(point1[1])) , (int(point2[0]),int(point2[1])) , (0, 255, 0), 3)   
+           cv2.line(image, (int(point1[0]),int(point1[1])) , (int(point2[0]),int(point2[1])) , (0, 255, 0), 3)   
   
 
 def GetPoint(humanpoints, part_idx,width_ori , height_ori):
@@ -178,9 +189,9 @@ def parse_args(argv=None):
                         help='Outputs stuff for scripts/compute_mask.py.')
     parser.add_argument('--no_crop', default=False, dest='crop', action='store_false',
                         help='Do not crop output masks with the predicted bounding box.')
-    parser.add_argument('--image', default=None, type=str,
+    parser.add_argument('--image', default='team3.jpg:outputimage.png', type=str,
                         help='A path to an image to use for display.')
-    parser.add_argument('--input_image', type=str, default='000000301867.jpg')
+    parser.add_argument('--input_image', type=str, default='team3.jpg')
     parser.add_argument('--images', default=None, type=str,
                         help='An input folder of images and output folder to save detected images. Should be in the format input->output.')
     parser.add_argument('--video', default=None, type=str,
@@ -293,8 +304,11 @@ def prep_display(dets_out, img,  h, w, undo_transform=True, class_color=False, m
     # I wish I had access to OpenGL or Vulkan but alas, I guess Pytorch tensor operations will have to suffice
     if args.display_masks and cfg.eval_mask_branch and num_dets_to_consider > 0:
         # After this, mask is of size [num_dets, h, w, 1]
-        masks = masks[:num_dets_to_consider, :, :, None]
         
+        masks = masks[:num_dets_to_consider, :, :, None]
+        masks1 = masks.view(-1, h, w).cpu().numpy()
+        
+
         # Prepare the RGB images for each mask given their color (size [num_dets, h, w, 1])
         colors = torch.cat([get_color(j, on_gpu=img_gpu.device.index).view(1, 1, 1, 3) for j in range(num_dets_to_consider)], dim=0)
         masks_color = masks.repeat(1, 1, 1, 3) * colors * mask_alpha
@@ -350,6 +364,7 @@ def prep_display(dets_out, img,  h, w, undo_transform=True, class_color=False, m
         body_parts = get_heatMapPoints(humans)
         for j in reversed(range(num_dets_to_consider)):
             x1, y1, x2, y2 = boxes[j, :]
+            
             color = get_color(j)
             score = scores[j]
             humanpoints = []
@@ -361,8 +376,9 @@ def prep_display(dets_out, img,  h, w, undo_transform=True, class_color=False, m
                        humanpoints.append(body_part)
                 
                 if len(humanpoints) > 0:
-                   print(humanpoints)
-                   draw_skeleton(img_numpy ,humanpoints, width_ori, height_ori)        
+                   #print(humanpoints)
+                   printMaskPolyon (masks1[j,:,:], img_numpy ,humanpoints, width_ori, height_ori)
+                   #draw_skeleton(img_numpy ,humanpoints, width_ori, height_ori)        
 
             if args.display_text:
                 _class = cfg.dataset.class_names[classes[j]]
@@ -1239,5 +1255,3 @@ if __name__ == '__main__':
 
         print("evaluating")
         evaluate(net, dataset)
-
-
